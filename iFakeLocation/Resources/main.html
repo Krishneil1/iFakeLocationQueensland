@@ -14,7 +14,7 @@
 		<link rel="stylesheet" href="leaflet.css">
 		<link rel="stylesheet" href="leaflet-geosearch.css">
 	</head>
-	<body>
+	<body onload="detectDevice()">
 		<div class="p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
 			<div class="d-flex flex-column align-items-center flex-md-row container">
 				<h4 class="my-0 mr-md-auto font-weight-normal">iFakeLocation</h4>
@@ -158,6 +158,30 @@
 					close();
 				});
 			});
+            //onload call the following funciton
+			function detectDevice() {
+
+                var b = $(this).attr('disabled', true);
+                fetch('/get_devices').then(function (e) {
+                    return e.json()
+                }).then(function (r) {
+                    b.removeAttr('disabled');
+                    if (r.error) {
+                        showMessageModal(r.error);
+                    } else {
+                        devices = r;
+                        $('#device').empty();
+                        for (var i = 0; i < devices.length; i++)
+                            $('#device').append($('<option></option>').text(devices[i].display_name).attr('data-udid', devices[i].udid));
+                        if (devices.length)
+                            $('#stop-location').removeAttr('disabled');
+                        else
+                            $('#stop-location').attr('disabled', true);
+                        if (marker)
+                            $('#set-location').removeAttr('disabled');
+                    }
+                });
+			}
 			
 			// Populate device list upon clicking refresh
 			$('#refresh').click(function() {
@@ -313,6 +337,14 @@
 		<script>
 			// Initialise the OSM provider for searching
 			var provider = new GeoSearch.OpenStreetMapProvider();
+
+			//Set country
+			provider.country = 'au';
+			//limit search to a country, state
+			provider.state = 'qld';
+			//limit search to a country, state, city
+			provider.search({ query: 'Queensland' }).then(function(results) {
+			});
 			var map = L.map('map');
 			var marker = null;
 			
@@ -330,17 +362,26 @@
 				if (!$('#query').val())
 					return;
 				$('#search').attr('disabled', true);
-				provider.search({query: $('#query').val()}).then(function(r) {
-					$('#search').removeAttr('disabled');
-					if (r.length) {
+				//create a object with the query and the country
+				provider.search({ query: $('#query').val() + ', ' + 'Queensland' }).then(function(results) {
+					if (results.length) {
+						//get the x: from result
+						var lon = results[0].x;
+						//get the y: from result
+						var lat = results[0].y;
+						//set the map view to the result
+						map.setView([lat, lon], 13);
+						//create a marker at the result
 						if (!marker)
-							marker = new L.marker([r[0].y, r[0].x], {draggable: true}).addTo(map);
+							marker = new L.marker([lat, lon], {draggable: true}).addTo(map);
 						else
-							marker.setLatLng([r[0].y, r[0].x]);
-						map.setView([r[0].y, r[0].x], 13);
+							marker.setLatLng([lat, lon]);
 						if (devices && devices.length)
 							$('#set-location').removeAttr('disabled');
+					} else {
+						showMessageModal('No results found');
 					}
+					$('#search').removeAttr('disabled');
 				});
 			}
 			
