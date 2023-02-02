@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>iFakeLocation</title>
+		<title>iFakey</title>
 		<script src="babel.polyfill.min.js"></script>
 		<script src="fetch.min.js"></script>
 		<script src="jquery-3.3.1.min.js"></script>
@@ -17,7 +17,7 @@
 	<body onload="detectDevice()">
 		<div class="p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
 			<div class="d-flex flex-column align-items-center flex-md-row container">
-				<h4 class="my-0 mr-md-auto font-weight-normal">iFakeLocation Queensland</h4>
+				<h4 class="my-0 mr-md-auto font-weight-normal">iFakey</h4>
 				<a id="about-btn" class="btn btn-outline-primary pl-4 pr-4" href="#" title="iFakeLocation">About</a>
 			</div>
 		</div>
@@ -51,11 +51,24 @@
 			<form id="locationSearch">
 				<div class="mb-3">
 					<div class="row align-items-center">
+						<!--Input select-->
+						<div>
+							<select class="custom-select d-block w-100" id="state" required onchange="stateSelected()">
+								<option value="ACT">ACT</option>
+								<option value="New South Wales">New South Wales</option>
+								<option value="South Australi">South Australia</option>
+								<option value="Tasmania">Tasmania</option>
+								<option value="Victoria">Victoria</option>
+								<option value="Western Australia">Western Australia</option>
+								<option value="Northern Territory">Northern Territory</option>
+								<option value="Queensland">Queensland</option>
+							</select>
+						</div>
 						<div class="col-md-auto">
 							<label class="mb-0" for="device">Location Search:</label>
 						</div>
 						<div class="col">
-							<input type="text"placeholder="Search by Address in Queensland or Post Code" class="form-control" id="query">
+							<input type="text"placeholder="Search by Address or Post Code" class="form-control" id="query">
 						</div>
 						<div class="col-md-auto">
 							<button type="button" class="btn btn-primary pl-4 pr-4" id="search">Search</button>
@@ -137,6 +150,11 @@
 			}
 		</script>
 		<script>
+			var state = '';
+			function stateSelected() {
+				state = $('#state').val();
+				alert(state);
+			}
 			var devices = [];
 		
 			// Obtain version information and populate on the about button
@@ -332,10 +350,8 @@
 
 			//Set country
 			provider.country = 'au';
-			//limit search to a country, state
-			provider.state = 'qld';
 			//limit search to a country, state, city
-			provider.search({ query: 'Queensland' }).then(function(results) {
+			provider.search({ query: state }).then(function(results) {
 			});
 			var map = L.map('map');
 			var marker = null;
@@ -355,7 +371,7 @@
 					return;
 				$('#search').attr('disabled', true);
 				//create a object with the query and the country
-				provider.search({ query: $('#query').val() + ', ' + 'Queensland' }).then(function(results) {
+				provider.search({ query: $('#query').val() + ', ' + state}).then(function(results) {
 					if (results.length) {
 						//get the x: from result
 						var lon = results[0].x;
