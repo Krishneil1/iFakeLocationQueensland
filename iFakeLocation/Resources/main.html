@@ -37,23 +37,23 @@
 				</div>
 			</form>
 			
-			<div id="map" style="width: 100%; height: 500px; max-height: 70vh"></div>
+			<div id="map" style="width: 100%; height: 450rem; max-height: 65vh"></div>
 			
 			<p><small>Click and drag to move the map. Use the mouse wheel or +/- buttons to zoom. Double-click anywhere (or drag the existing marker) to manually select a location.</small></p>
-			
-			<p><div class="form-check">
-				<input class="form-check-input" type="checkbox" value="" id="mapProviderAlt">
-				<label class="form-check-label" for="flexCheckDefault">
-					Use alternative map tile server
-				</label>
-			</div></p>
+		
 			
 			<form id="locationSearch">
 				<div class="mb-3">
 					<div class="row align-items-center">
 						<!--Input select-->
 						<div>
+							<select class="custom-select d-block w-100" id="country" required onchange="countrySelected()">
+								<option value="Australia">Australia</option>
+							</select>
+						</div>
+						<div>
 							<select class="custom-select d-block w-100" id="state" required onchange="stateSelected()">
+								<option value="Queensland">Queensland</option>
 								<option value="ACT">ACT</option>
 								<option value="New South Wales">New South Wales</option>
 								<option value="South Australi">South Australia</option>
@@ -61,14 +61,13 @@
 								<option value="Victoria">Victoria</option>
 								<option value="Western Australia">Western Australia</option>
 								<option value="Northern Territory">Northern Territory</option>
-								<option value="Queensland">Queensland</option>
 							</select>
 						</div>
 						<div class="col-md-auto">
 							<label class="mb-0" for="device">Location Search:</label>
 						</div>
 						<div class="col">
-							<input type="text"placeholder="Search by Address or Post Code" class="form-control" id="query">
+							<input type="text" placeholder="Search by Address or Post Code" class="form-control" id="query">
 						</div>
 						<div class="col-md-auto">
 							<button type="button" class="btn btn-primary pl-4 pr-4" id="search">Search</button>
@@ -150,10 +149,14 @@
 			}
 		</script>
 		<script>
-			var state = 'ACT';
+			var state = 'Queensland';
 			function stateSelected() {
 				state = $('#state').val();
 			}
+			let country = 'Australia';
+			function countrySelected() {
+                country = $('#country').val();
+            }
 			var devices = [];
 		
 			// Obtain version information and populate on the about button
@@ -350,7 +353,7 @@
 			//Set country
 			provider.country = 'au';
 			//limit search to a country, state, city
-			provider.search({ query: state }).then(function(results) {
+			provider.search({ query: state }).then(function() {
 			});
 			var map = L.map('map');
 			var marker = null;
@@ -365,32 +368,35 @@
 					$('#set-location').removeAttr('disabled');
 			});
 
-			function searchLocation() {
-				if (!$('#query').val())
-					return;
-				$('#search').attr('disabled', true);
-				//create a object with the query and the country
-				provider.search({ query: $('#query').val() + ', ' + state}).then(function(results) {
-					if (results.length) {
-						//get the x: from result
-						var lon = results[0].x;
-						//get the y: from result
-						var lat = results[0].y;
-						//set the map view to the result
-						map.setView([lat, lon], 13);
-						//create a marker at the result
-						if (!marker)
-							marker = new L.marker([lat, lon], {draggable: true}).addTo(map);
-						else
-							marker.setLatLng([lat, lon]);
-						if (devices && devices.length)
-							$('#set-location').removeAttr('disabled');
-					} else {
-						showMessageModal('No results found');
-					}
-					$('#search').removeAttr('disabled');
-				});
-			}
+            function searchLocation() {
+                if (!$('#query').val())
+                    return;
+                $('#search').attr('disabled', true);
+
+                // Add ', Australia' to the query to specify the country
+                provider.search({ query: $('#query').val() + ', Australia' }).then(function (results) {
+                    console.log(results);
+                    if (results.length) {
+                        //get the x: from result
+                        var lon = results[0].x;
+                        //get the y: from result
+                        var lat = results[0].y;
+                        //set the map view to the result
+                        map.setView([lat, lon], 13);
+                        //create a marker at the result
+                        if (!marker)
+                            marker = new L.marker([lat, lon], { draggable: true }).addTo(map);
+                        else
+                            marker.setLatLng([lat, lon]);
+                        if (devices && devices.length)
+                            $('#set-location').removeAttr('disabled');
+                    } else {
+                        showMessageModal('No results found');
+                    }
+                    $('#search').removeAttr('disabled');
+                });
+            }
+
 			
 			// Handle search button
 			$('#search').click(searchLocation);
@@ -403,21 +409,13 @@
 			map.doubleClickZoom.disable();
 			
 			// Set the OSM basemap layer
-			var defaultProvider = function() {
-				L.tileLayer.provider('OpenStreetMap.Mapnik').addTo(map);
-			};
+            var defaultProvider = function () {
+                L.tileLayer.provider('OpenStreetMap.Mapnik', {
+					maxZoom: 19,
+					minZoom: 5,
+                }).addTo(map);
+            };
 			defaultProvider();
-
-			// Provider toggle for OSM basemap layer (ie. due to rate limiting or IP block)
-			$('#mapProviderAlt').change(function() {
-				if (this.checked) {
-					L.tileLayer('https://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {
-						attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-					}).addTo(map);
-				} else {
-                    defaultProvider();
-				}
-			});
 			
 			// Initialise the map to the user's home country
 			fetch('/home_country').then(function(e) {
